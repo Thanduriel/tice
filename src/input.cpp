@@ -6,10 +6,11 @@
 using namespace glm;
 
 namespace Input{
-	InputManager::InputManager(GLFWwindow& _window, Graphic::Camera& _camera, Graphic::Renderer& _renderer) :
+	InputManager::InputManager(GLFWwindow& _window, Graphic::Camera& _camera, Graphic::Renderer& _renderer, Game::Character& _player) :
 		m_camera(_camera),
 		m_window(_window),
-		m_renderer(_renderer)
+		m_renderer(_renderer),
+		m_player(_player)
 	{}
 
 	void InputManager::process(float _deltaTime)
@@ -19,12 +20,16 @@ namespace Input{
 		double x, y;
 		glfwGetCursorPos(&m_window, &x, &y);
 
-		float dx = 0.2f * _deltaTime * float(width_2 - x);
-		float dy = 0.2f * _deltaTime * float(height_2 - y);
-		// mouse movement
-		glfwSetCursorPos(&m_window, width_2, height_2);
+		float dx = float(width_2 - x) / Config::g_windowWidth;
+		float dy = float(height_2 - y) / Config::g_windowHeight;
+		if (abs(dx) < 0.2f) dx = 0.f;
+		if (abs(dy) < 0.2f) dy = 0.f;
 
-		float speed = 4.f;
+		m_player.setVelocity(0.5f * glm::vec2(dx, dy));
+		// mouse movement
+	//	glfwSetCursorPos(&m_window, width_2, height_2);
+
+	/*	float speed = 4.f;
 		glm::vec2 position(0.f);
 		// Move forward
 		if (glfwGetKey(&m_window,GLFW_KEY_W) == GLFW_PRESS){
@@ -41,8 +46,8 @@ namespace Input{
 		// Strafe left
 		if (glfwGetKey(&m_window, GLFW_KEY_A) == GLFW_PRESS){
 			position -= vec2(0.f, 1.f) * _deltaTime * speed;
-		}
-		m_camera.update(dx, dy, position);
+		}*/
+		m_camera.update(m_player.getPosition());
 
 		//other options
 		if (glfwGetKey(&m_window, GLFW_KEY_1))

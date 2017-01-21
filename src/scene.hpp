@@ -2,6 +2,9 @@
 
 #include "renderer3d.hpp"
 #include "input.hpp"
+#include "grid.hpp"
+#include "character.hpp"
+#include "sun.hpp"
 
 class Scene
 {
@@ -15,4 +18,7 @@ protected:
 	Graphic::Renderer m_renderer;
 private:
 	Input::InputManager m_inputManager;
+	Graphic::Grid m_grid;
+	Game::Character m_player;
+	Graphic::Galaxy m_galaxy;
 };

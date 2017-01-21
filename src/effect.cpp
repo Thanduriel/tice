@@ -161,6 +161,8 @@ namespace Graphic{
 		glUseProgram(m_id);
 		m_blendMode.set();
 		m_depthState.set();
+
+		glEnableVertexAttribArray(0);
 	}
 
 

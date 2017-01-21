@@ -18,7 +18,13 @@ namespace Graphic{
 		m_renderMode(RenderModes::Simple)
 	//	m_effects({ Effect("grid") })
 	{
-
+		m_effects.reserve(Effects::Count);
+		m_effects.emplace_back("beam",
+			BlendMode(BlendMode::BLEND_OPERATION::ADD, BlendMode::BLEND::SRC_ALPHA, BlendMode::BLEND::ONE),
+			DepthState(DepthState::COMPARISON_FUNC::ALWAYS));
+		m_effects.emplace_back("sun",
+			BlendMode(BlendMode::BLEND_OPERATION::ADD, BlendMode::BLEND::ONE, BlendMode::BLEND::ONE),
+			DepthState(DepthState::COMPARISON_FUNC::ALWAYS));
 //		glEnable(GL_CULL_FACE);
 	}
 
@@ -44,33 +50,25 @@ namespace Graphic{
 	}
 
 	// ********************************************************************* //
-	void Renderer::draw(GLFWwindow* _window)
+	void Renderer::draw(GLFWwindow* _window, Grid& grid, Galaxy& _galaxy)
 	{
-		static Effect test("beam", 
-			BlendMode(BlendMode::BLEND_OPERATION::ADD, BlendMode::BLEND::SRC_ALPHA, BlendMode::BLEND::ONE),
-				DepthState(DepthState::COMPARISON_FUNC::ALWAYS));
-		const Effect& effect = test;
+		const Effect& effect = m_effects[Effects::Beam];
 
 		glClearColor(0.0f, 0.0f, 0.f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		effect.set();
-		glEnable(GL_POLYGON_SMOOTH);
-		glEnableVertexAttribArray(0);
-	//	glEnableVertexAttribArray(1);
-	//	glEnableVertexAttribArray(2);
-
 
 		GLuint MatrixID = glGetUniformLocation(effect.getProgId(), "MVP");
-		GLuint colorId = glGetUniformLocation(effect.getProgId(), "uColor");
-		GLuint thicknessId = glGetUniformLocation(effect.getProgId(), "uThickness");
+		glm::mat4 mvp = m_camera.getViewProjection();
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+	//	glEnable(GL_POLYGON_SMOOTH);
 	/*	GLuint lightDir = glGetUniformLocation(effect.getProgId(), "ulightDirection");
 		GLuint textureSamp = glGetUniformLocation(effect.getProgId(), "utextureSampler");
 		GLuint textureSamp2 = glGetUniformLocation(effect.getProgId(), "utextureSampler2");*/
 
 	//	static Texture texture("texture/grass.DDS");
 	//	static Texture textureRock("texture/rock.DDS");
-		Grid grid;
 
 //		glUniform4f(lightDir, 0.4472f, 0.8944f, 0.f, 0.f);
 
@@ -126,28 +124,24 @@ namespace Graphic{
 			
 		}*/
 		// the grid
-		glm::mat4 mvp = m_camera.getViewProjection();
+		grid.draw(effect, m_camera.getViewProjection());
+
+		m_effects[Sun].set();
+
+		GLuint camera = glGetUniformLocation(m_effects[Sun].getProgId(), "CAM_POS");
+		MatrixID = glGetUniformLocation(m_effects[Sun].getProgId(), "MVP");
+
+		mvp = m_camera.getViewProjection();
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
-		glUniform4f(colorId, 1.f, 1.f, 0.f, 0.5f);
-		glUniform1f(thicknessId, 0.02f);
+		glm::vec4 test = mvp * glm::vec4(0.f, 0.f, 0.f, 1.f);//glm::vec4(m_camera.getPosition(), 1.f);
+		test /= abs(test.w);
 
-		grid.draw();
-		const VertexBuffer<>& vb = grid.getVertices();
-		glBindBuffer(GL_ARRAY_BUFFER, vb.getId());
-		glVertexAttribPointer(
-			0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-
-		glDrawArrays(GL_LINES, 0, vb.size());
+		glUniform3f(camera, 0.f, 0.f, 8.f);
+		_galaxy.draw(m_effects[Sun]);
 
 		glDisableVertexAttribArray(0);
-//		glDisableVertexAttribArray(1);
-//		glDisableVertexAttribArray(2);
+		glDisableVertexAttribArray(1);
+		glDisableVertexAttribArray(2);
 
 		glfwSwapBuffers(_window);
 		glfwPollEvents();

@@ -17,29 +17,14 @@ namespace Graphic{
 		updateMatrix();
 	}
 
-	void Camera::update(float _dx, float _dy, vec2 _off)
+	void Camera::update(glm::vec2 _pos)
 	{
-#ifndef MODE2D
-		m_rotateX += _dx;
-		m_rotateY += _dy;
-#endif
+		glm::vec3 direction(0.f, -1.f, 0.f);
+		m_position += glm::vec3(_pos.x, 0.f, _pos.y);
 
-		glm::vec3 m_direction(
-			cos(m_rotateY) * sin(m_rotateX),
-			sin(m_rotateY),
-			cos(m_rotateY) * cos(m_rotateX)
-			);
+		glm::vec3 up(0.f, 0.f, 1.f);
 
-		glm::vec3 right = glm::vec3(
-			sin(m_rotateX - 3.14f / 2.0f),
-			0,
-			cos(m_rotateX - 3.14f / 2.0f)
-			);
-
-		glm::vec3 up = glm::cross(right, m_direction);
-
-		m_position += m_direction * _off.x + right * _off.y;
-		m_viewMatrix = glm::lookAt(m_position, m_position + m_direction, up);
+		m_viewMatrix = glm::lookAt(m_position, m_position + direction, up);
 
 		updateMatrix();
 	}

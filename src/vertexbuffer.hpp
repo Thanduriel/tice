@@ -22,8 +22,7 @@ namespace Graphic{
 		VertexBuffer() : m_isDirty(true)
 		{
 			glGenBuffers(1, &m_id);
-		//	glBindBuffer(GL_ARRAY_BUFFER, m_id);
-		//	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+			glBindBuffer(_ArrayType, m_id);
 		}
 		~VertexBuffer()
 		{
@@ -38,7 +37,16 @@ namespace Graphic{
 		{
 			glBindBuffer(_ArrayType, m_id);
 			// Give our vertices to OpenGL.
-			glBufferData(_ArrayType, ST::size() * sizeof(_T), &*ST::begin(), GL_STATIC_DRAW);
+			glBufferData(_ArrayType, ST::size() * sizeof(_T), &*ST::begin(), GL_DYNAMIC_DRAW);
+
+			glVertexAttribPointer(
+				0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+				3,                  // size
+				GL_FLOAT,           // type
+				GL_FALSE,           // normalized?
+				0,                  // stride
+				(void*)0            // array buffer offset
+			);
 		}
 	private:
 		bool m_isDirty;

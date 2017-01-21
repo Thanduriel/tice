@@ -2,6 +2,7 @@
 
 namespace Graphic {
 	const int c_size = 64;
+	const int c_sizeSqr = c_size * c_size;
 
 	Grid::Grid(float _thickness, float _density, const glm::vec4& _color)
 //		m_effect("grid")
@@ -9,13 +10,15 @@ namespace Graphic {
 	//	m_vertexBuffer.emplace_back(_thickness, _density, _color.w);
 	//	m_vertexBuffer.emplace_back(_color.x, _color.y, _color.z);
 
-		m_points.resize(c_size * c_size);
-		for (int i = 0; i < c_size * c_size; ++i)
+		m_origins.resize(c_sizeSqr);
+		m_points.resize(c_sizeSqr);
+		for (int i = 0; i < c_sizeSqr; ++i)
 		{
 			int x = i % c_size;
 			int y = i / c_size;
 
-			m_points[i] = glm::vec2(x * _density, y * _density);
+			m_origins[i] = glm::vec2(x * _density, y * _density);
+			m_points[i] = m_origins[i];
 		}
 
 /*		for(int ix = 0; ix < 50; ++ix)
@@ -38,10 +41,27 @@ namespace Graphic {
 		}
 		*/
 	}
-	
-	void Grid::draw()
+
+	// ************************************************************ //
+	void Grid::process(float _deltaTime)
 	{
-		m_vertexBuffer.reserve(m_points.size());
+		for (int i = 0; i < c_sizeSqr; ++i)
+			m_points[i] -= (m_points[i] - m_origins[i]) * _deltaTime * 0.7f;
+	}
+	
+	// ************************************************************ //
+	void Grid::draw(const Effect& _effect, const glm::mat4& _viewProjection)
+	{
+		GLuint MatrixID = glGetUniformLocation(_effect.getProgId(), "MVP");
+		GLuint colorId = glGetUniformLocation(_effect.getProgId(), "uColor");
+		GLuint thicknessId = glGetUniformLocation(_effect.getProgId(), "uThickness");
+
+		glm::mat4 mvp = _viewProjection;
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+		glUniform4f(colorId, 1.f, 1.f, 0.f, 0.5f);
+		glUniform1f(thicknessId, 0.02f);
+
+		m_vertexBuffer.clear();
 
 		for (int i = 0; i < c_size * c_size - c_size; ++i)
 		{
@@ -58,5 +78,9 @@ namespace Graphic {
 		}
 
 		m_vertexBuffer.upload();
+
+		//glBindBuffer(GL_ARRAY_BUFFER, vb.getId());
+
+		glDrawArrays(GL_LINES, 0, m_vertexBuffer.size());
 	}
 }

@@ -12,7 +12,10 @@ namespace Graphic{
 		const glm::mat4& getViewProjection() const { return m_viewProjectionMatrix; }
 		const glm::mat4& getView() const { return m_viewMatrix; }
 		const glm::mat4& getProjection() const { return m_projectionMatrix; }
-		void update(float _dx, float _dy, glm::vec2 _off);
+
+		const glm::vec3& getPosition() const { return m_position; }
+
+		void update(glm::vec2 _pos);
 
 		// Sets back this camera to the initial state.
 		void reset();
