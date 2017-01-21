@@ -1,7 +1,7 @@
 #include "grid.hpp"
 
 namespace Graphic {
-	const int c_size = 64;
+	const int c_size = 256;
 	const int c_sizeSqr = c_size * c_size;
 
 	Grid::Grid(float _thickness, float _density, const glm::vec4& _color)
@@ -82,5 +82,14 @@ namespace Graphic {
 		//glBindBuffer(GL_ARRAY_BUFFER, vb.getId());
 
 		glDrawArrays(GL_LINES, 0, m_vertexBuffer.size());
+	}
+
+	// ************************************************************ //
+	void Grid::applyFunction(std::function<glm::vec2(glm::vec2)> _function, float _deltaTime)
+	{
+		for (int i = 0; i < c_sizeSqr; ++i)
+		{
+			m_points[i] += _function(m_points[i]) * _deltaTime; // m_points
+		}
 	}
 }

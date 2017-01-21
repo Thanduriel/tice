@@ -6,6 +6,7 @@
 #include "character.hpp"
 #include "sun.hpp"
 
+
 class Scene
 {
 public:
@@ -17,6 +18,8 @@ public:
 protected:
 	Graphic::Renderer m_renderer;
 private:
+	float m_gameTime;
+
 	Input::InputManager m_inputManager;
 	Graphic::Grid m_grid;
 	Game::Character m_player;

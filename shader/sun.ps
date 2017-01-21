@@ -1,0 +1,173 @@
+#version 330 core
+
+// If you want to use this shader in a space whatsever feel free!
+// CC-BY-3.0 Johannes Jendersie
+//
+// General technical overview:
+// First there is a fractal value noise (2d) which is wrapped onto a sphere.
+// This noise can be interpreted as temperature which is color mapped
+// at the end. A third noise dimension is used for the time.
+// Then, solar storms are added by raymarching the surrounding of the sphere
+// by a combination of different step strategies:
+//   * Using ray intersections with larger spheres
+//   * Using ray intersections with cones of different opening angle
+//     which start in the sun and are oriented towards the camera.
+// The first strategie gives good results for perpendicular rays,
+// whereas the second yields artifact free results in the tangential plane.
+// Both are combined by interpolation to create a smooth animated radial
+// burst effect.
+
+// The constants below are meant to be set from a game or other application side.
+in vec3 SUN_CENTER;
+uniform vec3 CAM_POS;
+const float SUN_RADIUS = 0.9;
+const float STORM_RADIUS = 0.7;
+
+uniform vec2 iResolution;
+uniform float iGlobalTime;
+
+
+// Get the closest point between ray and sphere. If the ray hits the sphere
+// this is a point on the surface. Otherwise, it is in the tangential plane.
+vec3 raySphereCP(vec3 spherePos, float radius, vec3 rayOrigin, vec3 rayDirection, out float mask, out float t, out float r)
+{
+    vec3 p = spherePos - rayOrigin;
+    // Distance to the closest point between ray and sphere
+	t = dot( rayDirection, p );
+    // Distance between ray origin and center
+    float l = dot( p, p );
+    // If inside the root is positive. Go back to the surface in this case
+    r = l - t * t;
+    mask = radius * radius <= r ? 0.0 : 1.0;
+    t -= sqrt(max(0.0, radius * radius - r));
+	return rayOrigin + rayDirection * t;
+}
+
+// Find ray-cone intersection assuming the rays origin is on the cone axis.
+float simpleRayCone(vec3 rayOToConeO, vec3 rayDirection, float coneAngle, float sinConeAngle, float rcDist)
+{
+    // Compute the ray-to-cone side length of the triangle (RO, CO, intersection)
+    // using the sin rule.
+    float sinC = sin(3.1415926 - acos(dot(rayDirection, rayOToConeO) / rcDist) - coneAngle);
+    return sinConeAngle * rcDist / sinC;
+}
+
+
+// from https://www.shadertoy.com/view/4sfGzS
+float noise( in vec3 x )
+{
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+	f = f*f*(3.0-2.0*f);
+	
+    vec2 uv = p.xy + f.xy;
+	vec2 rg = vec2(0.5, 0.8);/*vec2(texture2D( iChannel0, (uv+vec2(37.0,17.0)*p.z+0.5)/256.0, -100.0 ).x,
+                   texture2D( iChannel0, (uv+vec2(37.0,17.0)*(p.z+1.0)+0.5)/256.0, -100.0 ).x );*/
+	return mix( rg.x, rg.y, f.z );
+}
+
+
+float sunSurfaceNoise(vec3 spos, float time)
+{
+    float s = 0.28;
+    float detail = 3.0;
+    for(int i = 0; i < 4; ++i)
+    {
+        float warp = noise(spos*8.0 * detail + time);
+        float n = noise(vec3(spos.xy * detail / spos.z + vec2(warp, 0.0), time * detail / 10.0 + float(i) * 0.618033989));
+        n = pow(n, 5.0-float(i));
+        s += n / detail;
+        detail *= 1.847;
+    }
+    return s;
+}
+
+// AAARRRG: no for loop with variable count in WebGL. May use only one function with 2 or 4 octaves.
+float sunSurfaceNoise2(vec3 spos, float time)
+{
+    float s = 0.28;
+    float detail = 3.0;
+    for(int i = 0; i < 2; ++i)
+    {
+        float warp = noise(spos*8.0 * detail + time);
+        float n = noise(vec3(spos.xy * detail / spos.z + vec2(warp, 0.0), time * detail / 10.0 + float(i) * 0.618033989));
+        n = pow(n, 5.0-float(i));
+        s += n / detail;
+        detail *= 1.847;
+    }
+    return s;
+}
+
+// Compute solar storm heat for a single point somewhere outside the
+// sphere.
+float solarStorm(vec3 pos, float time)
+{
+    float l = length(pos);
+    float surfaceDist = (l - SUN_RADIUS) / STORM_RADIUS;
+    float f = sunSurfaceNoise2(pos / l, time - surfaceDist * 8.0 * STORM_RADIUS) - surfaceDist * surfaceDist - 0.35;
+    return max(0.0, f);
+}
+
+out vec4 fragColor;
+
+void main()
+{
+    float time = iGlobalTime * 0.5;
+	vec2 uv = gl_FragCoord.xy / iResolution.xy;
+    uv -= 0.5;
+	uv.x *= iResolution.x / iResolution.y;
+    
+    vec3 viewDir = normalize(vec3(uv, -3.0));
+    float mask = 0.0, t, r;
+    vec3 spos = raySphereCP(SUN_CENTER, SUN_RADIUS, CAM_POS, viewDir, mask, t, r);
+    
+    float value = 0.0;
+
+    // Noise on the sphere surface itself (masked in non sphere regions)
+    float s = sunSurfaceNoise(spos, time);
+    value = s * mask;
+    
+    // Extremly bright areas...
+    value *= 1.9;
+    value = pow(value, 4.0) * 5.0;
+    if(value > 5.0) value *= 8.0;
+
+    //value /= spos.z * 0.5 + 0.5;
+    
+    vec3 camToSun = SUN_CENTER - CAM_POS;
+    float dist = length(camToSun);
+    float cosMax = SUN_RADIUS / dist;
+    float maxAngle = acos(cosMax);
+    float cosVtimesL = dot( viewDir, camToSun );
+    float cosVMax = t / dist;
+    
+    // Solar storms
+    float storm = 0.0;
+    for(int i = 1; i <= 9; ++i)
+    {
+        float step = (float(i) ) * 0.02;
+        //s = solarStorm(spos + viewDir * step, time);
+        
+        // Projection to another sphere with a larger radius:
+        // good quality for bursts in view direction.
+        float radius = SUN_RADIUS + step;
+        float t0 = (cosVtimesL - sqrt(max(0.0, radius * radius - r)));
+        
+        // Projection to a cone starting in the sun center and pointing into
+        // viewer direction: good quality for tangential bursts.
+        float angle = float(i) / 11.0 * maxAngle;
+        float t1 = simpleRayCone(camToSun, viewDir, angle, sin(angle), dist);
+        
+        //float tf = min(t0, t1);
+        //float tf = sqrt(min(t1, t) * t0);
+        float tf = mix(t1, t0, pow(max(cosVtimesL / dist - cosVMax, 0.0) / (1.0 - cosVMax), 5.0));
+        vec3 spacePos = CAM_POS + viewDir * tf;
+        s = solarStorm(spacePos, time);
+        storm += s * s;// * s;
+    }
+    value += storm * 300.0;
+    
+    fragColor = value * vec4(1, 0.2, 0.05, 1);
+	uv.x /= iResolution.x / iResolution.y;
+	if(length(uv*2.f-SUN_CENTER.xy) < 0.04f) fragColor = vec4(1,1,1,1);
+}

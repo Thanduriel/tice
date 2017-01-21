@@ -6,9 +6,9 @@ out vec4 gs_Color;
 out vec2 gs_TexCoord;
 
 in vec4 vs_position[2];
-in float thickness[2];
-in float density[2];
-in vec4 vs_color[2];
+
+uniform float uThickness;
+uniform vec4 uColor;
 
 layout(lines) in;
 layout(triangle_strip, max_vertices = OUT_VERTS) out;
@@ -24,7 +24,6 @@ void main()
 	gl_Position = vec4(1.f, 1.f, 0.f, 1.f);
 	EmitVertex();
 	EndPrimitive();*/
-		// Transform to projection space - the rest is done directly in screen space
 	vec4 l1 = vs_position[0];
 	vec4 l2 = vs_position[1];
 	
@@ -45,9 +44,9 @@ void main()
 	// Compute a vector perpendicular vector to create a beam
 	vec2 dir = normalize(l2.xy / l2.w - l1.xy / l1.w);
 	// Cross product with view direction
-	vec4 perpendicular = vec4(-dir.y * 0.1f, dir.x * 0.1f, 0, 0);
+	vec4 perpendicular = vec4(-dir.y * uThickness, dir.x * uThickness, 0, 0);
 
-	gs_Color = vs_color[0];
+	gs_Color = uColor;
 	gl_Position = l1 + perpendicular;
 	gs_TexCoord = vec2(tex1, -1.0);
 	EmitVertex();
@@ -56,7 +55,7 @@ void main()
 	gs_TexCoord = vec2(tex1, 1.0);
 	EmitVertex();
 	
-	gs_Color = vs_color[0];
+	gs_Color = uColor;
 	gl_Position = l2 + perpendicular;
 	gs_TexCoord = vec2(tex2, -1.0);
 	EmitVertex();

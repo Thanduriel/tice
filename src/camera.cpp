@@ -20,7 +20,7 @@ namespace Graphic{
 	void Camera::update(glm::vec2 _pos)
 	{
 		glm::vec3 direction(0.f, -1.f, 0.f);
-		m_position += glm::vec3(_pos.x, 0.f, _pos.y);
+		m_position = glm::vec3(_pos.x, m_position.y, _pos.y);
 
 		glm::vec3 up(0.f, 0.f, 1.f);
 

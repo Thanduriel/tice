@@ -7,13 +7,15 @@ namespace Physics {
 	class Body
 	{
 	public:
+		Body() : m_position(0.f), m_velocity(0.f) {}
+
 		glm::vec2 getPosition() const { return m_position; }
 
 		void process(float _deltaTime) { m_position += _deltaTime * m_velocity; }
 
 		void setVelocity(glm::vec2 _vel) { m_velocity = _vel; }
 		glm::vec2 getVelocity() const { return m_velocity; }
-	private:
+	protected:
 		glm::vec2 m_position;
 		glm::vec2 m_velocity;
 	};

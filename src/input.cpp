@@ -25,7 +25,7 @@ namespace Input{
 		if (abs(dx) < 0.2f) dx = 0.f;
 		if (abs(dy) < 0.2f) dy = 0.f;
 
-		m_player.setVelocity(0.5f * glm::vec2(dx, dy));
+		m_player.setTargetVelocity(8.5f * glm::vec2(dx, dy));
 		// mouse movement
 	//	glfwSetCursorPos(&m_window, width_2, height_2);
 
