@@ -47,7 +47,7 @@ namespace Graphic{
 	void Renderer::draw(GLFWwindow* _window)
 	{
 		static Effect test("beam", 
-			BlendMode(BlendMode::BLEND_OPERATION::MAX, BlendMode::BLEND::ONE, BlendMode::BLEND::ONE),
+			BlendMode(BlendMode::BLEND_OPERATION::ADD, BlendMode::BLEND::SRC_ALPHA, BlendMode::BLEND::ONE),
 				DepthState(DepthState::COMPARISON_FUNC::ALWAYS));
 		const Effect& effect = test;
 
@@ -55,15 +55,16 @@ namespace Graphic{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		effect.set();
+		glEnable(GL_POLYGON_SMOOTH);
 		glEnableVertexAttribArray(0);
 	//	glEnableVertexAttribArray(1);
 	//	glEnableVertexAttribArray(2);
 
 
 		GLuint MatrixID = glGetUniformLocation(effect.getProgId(), "MVP");
-	/*	GLuint mmID = glGetUniformLocation(effect.getProgId(), "M");
 		GLuint colorId = glGetUniformLocation(effect.getProgId(), "uColor");
-		GLuint lightDir = glGetUniformLocation(effect.getProgId(), "ulightDirection");
+		GLuint thicknessId = glGetUniformLocation(effect.getProgId(), "uThickness");
+	/*	GLuint lightDir = glGetUniformLocation(effect.getProgId(), "ulightDirection");
 		GLuint textureSamp = glGetUniformLocation(effect.getProgId(), "utextureSampler");
 		GLuint textureSamp2 = glGetUniformLocation(effect.getProgId(), "utextureSampler2");*/
 
@@ -127,7 +128,10 @@ namespace Graphic{
 		// the grid
 		glm::mat4 mvp = m_camera.getViewProjection();
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+		glUniform4f(colorId, 1.f, 1.f, 0.f, 0.5f);
+		glUniform1f(thicknessId, 0.02f);
 
+		grid.draw();
 		const VertexBuffer<>& vb = grid.getVertices();
 		glBindBuffer(GL_ARRAY_BUFFER, vb.getId());
 		glVertexAttribPointer(
