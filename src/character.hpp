@@ -7,7 +7,7 @@ namespace Game {
 	class Character : public Physics::Body
 	{
 	public:
-		Character();
+		Character(glm::vec2 _position);
 
 		void process(float _deltaTime);
 

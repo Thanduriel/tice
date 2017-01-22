@@ -1,4 +1,4 @@
-#include "renderer3d.hpp"
+#include "renderer.hpp"
 #include "config.hpp"
 #include <GL/glew.h>
 
@@ -10,6 +10,8 @@
 #include "effect.hpp"
 #include "texture.hpp"
 #include "grid.hpp"
+#include "particlesystem.hpp"
+#include "globals.hpp"
 
 namespace Graphic{
 
@@ -18,12 +20,17 @@ namespace Graphic{
 		m_renderMode(RenderModes::Simple)
 	//	m_effects({ Effect("grid") })
 	{
+		g_particleSystem = std::make_unique<ParticleSystem>();
+
 		m_effects.reserve(Effects::Count);
 		m_effects.emplace_back("beam",
 			BlendMode(BlendMode::BLEND_OPERATION::ADD, BlendMode::BLEND::SRC_ALPHA, BlendMode::BLEND::ONE),
 			DepthState(DepthState::COMPARISON_FUNC::ALWAYS));
 		m_effects.emplace_back("sun",
 			BlendMode(BlendMode::BLEND_OPERATION::ADD, BlendMode::BLEND::ONE, BlendMode::BLEND::ONE),
+			DepthState(DepthState::COMPARISON_FUNC::ALWAYS));
+		m_effects.emplace_back("particle",
+			BlendMode(BlendMode::BLEND_OPERATION::ADD, BlendMode::BLEND::INV_SRC_ALPHA, BlendMode::BLEND::ONE),
 			DepthState(DepthState::COMPARISON_FUNC::ALWAYS));
 //		glEnable(GL_CULL_FACE);
 	}
@@ -131,13 +138,21 @@ namespace Graphic{
 		GLuint camera = glGetUniformLocation(m_effects[Sun].getProgId(), "CAM_POS");
 		MatrixID = glGetUniformLocation(m_effects[Sun].getProgId(), "MVP");
 
-		mvp = m_camera.getViewProjection();
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 		glm::vec4 test = mvp * glm::vec4(0.f, 0.f, 0.f, 1.f);//glm::vec4(m_camera.getPosition(), 1.f);
 		test /= abs(test.w);
 
 		glUniform3f(camera, 0.f, 0.f, 8.f);
 		_galaxy.draw(m_effects[Sun]);
+
+		// particles
+		m_effects[Particle].set();
+		MatrixID = glGetUniformLocation(m_effects[Particle].getProgId(), "MVP");
+		GLuint aspectRatio = glGetUniformLocation(m_effects[Particle].getProgId(), "uAspectRatio");
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+		glUniform1f(aspectRatio, (float)Config::g_windowWidth / (float)Config::g_windowHeight);
+
+		g_particleSystem->draw();
 
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);

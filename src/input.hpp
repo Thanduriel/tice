@@ -1,7 +1,7 @@
 #pragma once
 
 #include "camera.hpp"
-#include "renderer3d.hpp"
+#include "renderer.hpp"
 #include "GLFW/glfw3.h"
 #include "character.hpp"
 

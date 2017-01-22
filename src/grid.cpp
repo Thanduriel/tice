@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "grid.hpp"
 
 namespace Graphic {
@@ -12,6 +14,8 @@ namespace Graphic {
 
 		m_origins.resize(c_sizeSqr);
 		m_points.resize(c_sizeSqr);
+		m_distances.resize(c_sizeSqr);
+		m_pointsBefore.resize(c_sizeSqr);
 		for (int i = 0; i < c_sizeSqr; ++i)
 		{
 			int x = i % c_size;
@@ -19,34 +23,50 @@ namespace Graphic {
 
 			m_origins[i] = glm::vec2(x * _density, y * _density);
 			m_points[i] = m_origins[i];
+			m_pointsBefore[i] = m_origins[i];
 		}
-
-/*		for(int ix = 0; ix < 50; ++ix)
-			for (int iy = 0; iy < 50; ++iy)
-			{
-				m_vertexBuffer.emplace_back(iy -1.f, 0.f, ix * 1.f);
-				m_vertexBuffer.emplace_back(iy + 1.f, 0.f, ix * 1.f);
-			}*/
-
-/*		for (int i = -50; i < 50; ++i)
-		{
-			m_vertexBuffer.emplace_back(100.f, 0.f, i * 1.f);
-			m_vertexBuffer.emplace_back(-100.f, 0.f, i * 1.f);
-		}
-
-		for (int i = -50; i < 50; ++i)
-		{
-			m_vertexBuffer.emplace_back(i * 1.f, 0.f, 100.f);
-			m_vertexBuffer.emplace_back(i * 1.f , 0.f,- 100.f);
-		}
-		*/
 	}
 
 	// ************************************************************ //
-	void Grid::process(float _deltaTime)
+	void Grid::preprocess(glm::vec2 _playerPos)
 	{
 		for (int i = 0; i < c_sizeSqr; ++i)
+		{
+			glm::vec2 dir = _playerPos - m_points[i];
+			m_distances[i].second = dir.x * dir.x + dir.y * dir.y;
+		}
+	}
+
+	// ************************************************************ //
+	glm::vec2 Grid::process(float _deltaTime)
+	{
+		for (int i = 0; i < c_sizeSqr; ++i)
+		{
 			m_points[i] -= (m_points[i] - m_origins[i]) * _deltaTime * 0.7f;
+		}
+
+		for (int i = 0; i < c_sizeSqr; ++i)
+		{
+			m_distances[i].first = m_points[i] - m_pointsBefore[i];
+			m_pointsBefore[i] = m_points[i];
+		}
+		auto f = [] (const std::pair<glm::vec2, float>& _lhs, std::pair<glm::vec2, float> _rhs)
+		{
+			return _lhs.second > _rhs.second;
+		};
+
+		std::make_heap(m_distances.begin(), m_distances.end(), f);
+
+		glm::vec2 contraction(0.f);
+		for (int i = 0; i < 4; ++i)
+		{
+			contraction += m_distances.front().first;
+			std::pop_heap(m_distances.begin(), m_distances.end()-i, f);
+		}
+		if (contraction.x > 0.2f)
+			int brk = 42;
+
+		return contraction * 0.25f;
 	}
 	
 	// ************************************************************ //
@@ -58,10 +78,11 @@ namespace Graphic {
 
 		glm::mat4 mvp = _viewProjection;
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
-		glUniform4f(colorId, 1.f, 1.f, 0.f, 0.5f);
+		glUniform4f(colorId, 0.f, 1.f, 0.f, 0.5f);
 		glUniform1f(thicknessId, 0.02f);
 
 		m_vertexBuffer.clear();
+		m_vertexBuffer.reserve(c_sizeSqr);
 
 		for (int i = 0; i < c_size * c_size - c_size; ++i)
 		{
@@ -89,7 +110,7 @@ namespace Graphic {
 	{
 		for (int i = 0; i < c_sizeSqr; ++i)
 		{
-			m_points[i] += _function(m_points[i]) * _deltaTime; // m_points
+			m_points[i] += _function(m_origins[i]) * _deltaTime; // m_points
 		}
 	}
 }

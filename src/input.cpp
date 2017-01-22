@@ -22,31 +22,17 @@ namespace Input{
 
 		float dx = float(width_2 - x) / Config::g_windowWidth;
 		float dy = float(height_2 - y) / Config::g_windowHeight;
-		if (abs(dx) < 0.2f) dx = 0.f;
-		if (abs(dy) < 0.2f) dy = 0.f;
+		dx *= Config::g_aspectRatio;
+		if (dx*dx + dy*dy < 0.01f)
+		{
+			dx = 0.f;
+			dy = 0.f;
+		} 
+		glm::vec2 vel(dx, dy);
+		float l = length(vel);
 
-		m_player.setTargetVelocity(8.5f * glm::vec2(dx, dy));
-		// mouse movement
-	//	glfwSetCursorPos(&m_window, width_2, height_2);
+		m_player.setTargetVelocity(7.5f * std::min(l, 0.5f) * vel / l);
 
-	/*	float speed = 4.f;
-		glm::vec2 position(0.f);
-		// Move forward
-		if (glfwGetKey(&m_window,GLFW_KEY_W) == GLFW_PRESS){
-			position += vec2(1.f, 0.f) * _deltaTime * speed;
-		}
-		// Move backward
-		if (glfwGetKey(&m_window, GLFW_KEY_S) == GLFW_PRESS){
-			position -= vec2(1.f, 0.f) * _deltaTime * speed;
-		}
-		// Strafe right
-		if (glfwGetKey(&m_window, GLFW_KEY_D) == GLFW_PRESS){
-			position += vec2(0.f, 1.f) * _deltaTime * speed;
-		}
-		// Strafe left
-		if (glfwGetKey(&m_window, GLFW_KEY_A) == GLFW_PRESS){
-			position -= vec2(0.f, 1.f) * _deltaTime * speed;
-		}*/
 		m_camera.update(m_player.getPosition());
 
 		//other options

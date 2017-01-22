@@ -16,6 +16,7 @@ namespace Graphic{
 		enum Effects{
 			Beam,
 			Sun,
+			Particle,
 			BlackHole,
 			Count
 		};

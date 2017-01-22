@@ -9,6 +9,7 @@ namespace Physics {
 	public:
 		Body() : m_position(0.f), m_velocity(0.f) {}
 
+		void setPosition(glm::vec2 _position) { m_position = _position; }
 		glm::vec2 getPosition() const { return m_position; }
 
 		void process(float _deltaTime) { m_position += _deltaTime * m_velocity; }

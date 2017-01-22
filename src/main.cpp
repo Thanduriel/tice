@@ -43,7 +43,8 @@ int main(void)
 		return -1;
 	}
 
-	Scene scene(window);
+	Graphic::Renderer renderer;
+	std::unique_ptr<Scene> scene(new World01(window, renderer));
 
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
@@ -52,16 +53,49 @@ int main(void)
 
 	clock_t c = clock();
 
+	bool finished = false;
+	float waitTime = 0.f;
+	int worldCount = 0;
+
+	bool replayMode = true;
+
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
 		float frameTime = float(clock() - c) / CLOCKS_PER_SEC;
 		c = clock();
 
-		glfwSetWindowTitle(window, std::to_string(frameTime).c_str());
+	//	glfwSetWindowTitle(window, std::to_string(frameTime).c_str());
 		
-		scene.process(frameTime);
-		scene.draw(window);
+		if (glfwGetKey(window, GLFW_KEY_R)) replayMode = true;
+		else if (glfwGetKey(window, GLFW_KEY_C)) replayMode = false;
+
+		if (finished)
+		{
+			waitTime += frameTime;
+
+			//next level
+			if (waitTime > 3.f)
+			{
+				if(!replayMode) ++worldCount;
+
+				switch (worldCount)
+				{
+				case 0: scene = std::make_unique<World01>(window, renderer); break;
+				case 1: scene = std::make_unique<World02>(window, renderer); break;
+				case 2: scene = std::make_unique<World03>(window, renderer); break;
+				default: glfwSetWindowShouldClose(window, 1);
+				}
+
+				finished = false;
+				waitTime = 0.f;
+			}
+		}
+		else
+		{
+			finished = scene->process(frameTime);
+			scene->draw(window);
+		}
 	}
 
 	glDeleteVertexArrays(1, &VertexArrayID);
